@@ -1,0 +1,204 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Represents an agricultural product available at Lalitpur United Agro Farm",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique product ID" },
+        "nameNp": { "type": "string", "description": "Nepali name of product" },
+        "nameEn": { "type": "string", "description": "English name of product" },
+        "category": { "type": "string", "enum": ["DAIRY", "POULTRY", "LIVESTOCK", "VEGETABLES", "FERTILIZER_FEED"] },
+        "retailPrice": { "type": "number", "description": "Retail price per unit in NPR" },
+        "wholesalePrice": { "type": "number", "description": "Wholesale price per unit in NPR" },
+        "unit": { "type": "string", "enum": ["LITRE", "KG", "CRATE", "PIECE", "BAG_50KG", "BAG_25KG", "PAIR"] },
+        "stockQuantity": { "type": "number", "description": "Available stock quantity" },
+        "minStockThreshold": { "type": "number", "description": "Threshold for low-stock alerting" },
+        "descriptionNp": { "type": "string", "description": "Description in Nepali" },
+        "descriptionEn": { "type": "string", "description": "Description in English" },
+        "sku": { "type": "string", "description": "SKU identifier" },
+        "isOrganicCertified": { "type": "boolean", "description": "Whether organic certified" },
+        "userId": { "type": "string", "description": "Creator user UID" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp via serverTimestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Update timestamp via serverTimestamp" }
+      },
+      "required": ["nameNp", "category", "retailPrice", "unit", "stockQuantity", "userId", "createdAt"]
+    },
+    "FarmOrder": {
+      "title": "FarmOrder",
+      "description": "Customer order containing purchased items and Muktinath Bikas Bank payment verification",
+      "type": "object",
+      "properties": {
+        "orderId": { "type": "string", "description": "Order identifier" },
+        "userId": { "type": "string", "description": "Customer user UID" },
+        "customerName": { "type": "string", "description": "Customer full name" },
+        "customerPhone": { "type": "string", "description": "Contact phone number" },
+        "deliveryAddress": { "type": "string", "description": "Delivery or pickup address" },
+        "totalAmount": { "type": "number", "description": "Grand total in NPR" },
+        "orderDate": { "type": "string", "description": "Readable order date string" },
+        "status": { "type": "string", "enum": ["PENDING_VERIFICATION", "VERIFIED", "PROCESSING", "DISPATCHED", "COMPLETED"] },
+        "notes": { "type": "string", "description": "Optional order notes" },
+        "items": { "type": "array", "description": "List of ordered cart items" },
+        "bankTransfer": { "type": "object", "description": "Bank transfer payment reference details" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp via serverTimestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Update timestamp via serverTimestamp" }
+      },
+      "required": ["userId", "customerName", "customerPhone", "totalAmount", "status", "createdAt"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated user profile for customer or farm staff",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "User UID" },
+        "displayName": { "type": "string", "description": "Display name" },
+        "email": { "type": "string", "description": "Email address" },
+        "phone": { "type": "string", "description": "Phone number" },
+        "role": { "type": "string", "enum": ["CUSTOMER", "STAFF", "ADMIN"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "displayName", "createdAt"]
+    },
+    "Employee": {
+      "title": "Employee",
+      "description": "Farm staff worker profile with wage information",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string" },
+        "phone": { "type": "string" },
+        "dailyWage": { "type": "number" },
+        "monthlySalary": { "type": "number" },
+        "joinDate": { "type": "string" },
+        "isActive": { "type": "boolean" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "role", "userId", "createdAt"]
+    },
+    "AttendanceRecord": {
+      "title": "AttendanceRecord",
+      "description": "Daily attendance record for farm employees",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "employeeId": { "type": "string" },
+        "employeeName": { "type": "string" },
+        "date": { "type": "string" },
+        "monthYear": { "type": "string" },
+        "status": { "type": "string", "enum": ["PRESENT", "ABSENT", "HALF_DAY", "PAID_LEAVE", "OVERTIME"] },
+        "checkInTime": { "type": "string" },
+        "checkOutTime": { "type": "string" },
+        "remarks": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["employeeId", "employeeName", "date", "monthYear", "status", "userId", "createdAt"]
+    },
+    "FarmTransaction": {
+      "title": "FarmTransaction",
+      "description": "Daily income or expense record for farm accounting",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string", "enum": ["INCOME", "EXPENSE"] },
+        "category": { "type": "string" },
+        "amount": { "type": "number" },
+        "date": { "type": "string" },
+        "monthYear": { "type": "string" },
+        "paymentMode": { "type": "string" },
+        "partyName": { "type": "string" },
+        "referenceNo": { "type": "string" },
+        "description": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["type", "category", "amount", "date", "monthYear", "userId", "createdAt"]
+    },
+    "FarmBalanceSheetLedger": {
+      "title": "FarmBalanceSheetLedger",
+      "description": "Asset and liability valuations for the farm balance sheet",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "cashInHand": { "type": "number" },
+        "bankBalanceMuktinath": { "type": "number" },
+        "esewaBalance": { "type": "number" },
+        "accountsReceivable": { "type": "number" },
+        "fixedAssetsEquipment": { "type": "number" },
+        "fixedAssetsLandShed": { "type": "number" },
+        "livestockValuation": { "type": "number" },
+        "accountsPayable": { "type": "number" },
+        "accruedSalaries": { "type": "number" },
+        "shortTermLoans": { "type": "number" },
+        "ownerCapital": { "type": "number" },
+        "userId": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["cashInHand", "bankBalanceMuktinath", "fixedAssetsEquipment", "ownerCapital", "userId"]
+    },
+    "OfficialDocument": {
+      "title": "OfficialDocument",
+      "description": "Official company registration, tax/PAN, licenses, municipal operating permits and legal compliance certificates",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "titleNp": { "type": "string" },
+        "titleEn": { "type": "string" },
+        "documentNumber": { "type": "string" },
+        "category": { "type": "string", "enum": ["REGISTRATION", "TAX_VAT", "MUNICIPAL_PERMIT", "AGRICULTURE_LIVESTOCK", "FOOD_SAFETY_DFTQC", "BANKING_FINANCE", "ENVIRONMENTAL", "LAND_LEASE"] },
+        "issuingAuthorityNp": { "type": "string" },
+        "issuingAuthorityEn": { "type": "string" },
+        "issueDate": { "type": "string" },
+        "expiryDate": { "type": "string" },
+        "status": { "type": "string", "enum": ["ACTIVE", "RENEWAL_DUE", "PERMANENT", "EXPIRED"] },
+        "isVerified": { "type": "boolean" },
+        "digitalRefCode": { "type": "string" },
+        "summaryPointsNp": { "type": "array" },
+        "summaryPointsEn": { "type": "array" },
+        "contactOfficer": { "type": "string" },
+        "notes": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["titleNp", "documentNumber", "category", "issuingAuthorityNp", "issueDate", "status", "userId"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Agricultural products and live price list of United Agro Farm"
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/FarmOrder" },
+      "description": "Customer orders and payment transfer records"
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profiles for authenticated customers and managers"
+    },
+    "/employees/{employeeId}": {
+      "schema": { "$ref": "#/entities/Employee" },
+      "description": "Employee profiles and wage records"
+    },
+    "/attendances/{attendanceId}": {
+      "schema": { "$ref": "#/entities/AttendanceRecord" },
+      "description": "Employee attendance records day-wise and monthly"
+    },
+    "/transactions/{transactionId}": {
+      "schema": { "$ref": "#/entities/FarmTransaction" },
+      "description": "Daily farm income and expense entries"
+    },
+    "/balance_sheet/{ledgerId}": {
+      "schema": { "$ref": "#/entities/FarmBalanceSheetLedger" },
+      "description": "Balance sheet asset and liability valuation ledger"
+    },
+    "/documents/{documentId}": {
+      "schema": { "$ref": "#/entities/OfficialDocument" },
+      "description": "Official company documents, permits, licenses, and legal certificates"
+    }
+  }
+}

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Golden Sunrise behind farm hills -->
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M44,48 A10,10 0 0,1 64,48 Z" />
+
+    <!-- Sun rays -->
+    <path
+        android:strokeColor="#FFD54F"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:pathData="M54,34 L54,30 M42,39 L39,36 M66,39 L69,36 M36,48 L32,48 M72,48 L76,48" />
+
+    <!-- Farm Hills (Rolling landscape) -->
+    <path
+        android:fillColor="#2E7D32"
+        android:pathData="M24,74 C34,64 46,65 54,68 C62,71 74,65 84,74 L84,78 L24,78 Z" />
+
+    <path
+        android:fillColor="#388E3C"
+        android:pathData="M24,72 C32,67 42,67 50,71 C58,75 70,68 84,73 L84,75 C70,70 58,77 50,73 C42,69 32,69 24,74 Z" />
+
+    <!-- Central Golden Wheat Stalk (Main Stalk) -->
+    <path
+        android:strokeColor="#FFE082"
+        android:strokeWidth="2.0"
+        android:strokeLineCap="round"
+        android:pathData="M54,72 L54,40" />
+
+    <!-- Wheat Grains / Ear of Corn (Golden) -->
+    <!-- Top grain -->
+    <path
+        android:fillColor="#FFCA28"
+        android:pathData="M54,36 C52,38 52,42 54,43 C56,42 56,38 54,36 Z" />
+
+    <!-- Left grain 1 -->
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M54,42 C49,41 47,44 49,47 C52,47 53,45 54,42 Z" />
+
+    <!-- Right grain 1 -->
+    <path
+        android:fillColor="#FFC107"
+        android:pathData="M54,44 C59,43 61,46 59,49 C56,49 55,47 54,44 Z" />
+
+    <!-- Left grain 2 -->
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M54,48 C48,47 46,50 48,53 C52,53 53,51 54,48 Z" />
+
+    <!-- Right grain 2 -->
+    <path
+        android:fillColor="#FFC107"
+        android:pathData="M54,50 C60,49 62,52 60,55 C56,55 55,53 54,50 Z" />
+
+    <!-- Left Sprout Leaf (Vibrant Green) -->
+    <path
+        android:fillColor="#81C784"
+        android:pathData="M53,62 C43,62 38,55 40,49 C47,49 52,56 53,62 Z" />
+
+    <!-- Right Sprout Leaf (Vibrant Green) -->
+    <path
+        android:fillColor="#A5D6A7"
+        android:pathData="M55,62 C65,62 70,55 68,49 C61,49 56,56 55,62 Z" />
+
+    <!-- Base soil foundation mound -->
+    <path
+        android:fillColor="#1B5E20"
+        android:pathData="M38,76 C46,74 62,74 70,76 L70,78 L38,78 Z" />
+
+</vector>

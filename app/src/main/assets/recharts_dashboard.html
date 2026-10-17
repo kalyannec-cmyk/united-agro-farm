@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>United Agro Farm - Recharts Dashboard</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+    body {
+      background-color: #F4F7F4;
+      color: #1A2E1C;
+      padding: 12px;
+      -webkit-font-smoothing: antialiased;
+    }
+    .dashboard-header {
+      background: linear-gradient(135deg, #1B5E20, #2E7D32);
+      color: #FFFFFF;
+      padding: 16px;
+      border-radius: 16px;
+      margin-bottom: 14px;
+      box-shadow: 0 4px 12px rgba(27, 94, 32, 0.2);
+    }
+    .farm-title {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #FFD54F;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+    .month-title {
+      font-size: 20px;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+    .sub-title {
+      font-size: 12px;
+      color: #C8E6C9;
+    }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .kpi-card {
+      background: #FFFFFF;
+      padding: 12px;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      border-left: 4px solid #2E7D32;
+    }
+    .kpi-card.expense {
+      border-left-color: #D32F2F;
+    }
+    .kpi-card.net {
+      border-left-color: #F57F17;
+    }
+    .kpi-card.inventory {
+      border-left-color: #00796B;
+    }
+    .kpi-label {
+      font-size: 11px;
+      color: #556B56;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .kpi-value {
+      font-size: 16px;
+      font-weight: 800;
+      color: #1B5E20;
+    }
+    .kpi-card.expense .kpi-value {
+      color: #D32F2F;
+    }
+    .kpi-card.net .kpi-value {
+      color: #E65100;
+    }
+    .kpi-card.inventory .kpi-value {
+      color: #00796B;
+    }
+    .kpi-sub {
+      font-size: 10px;
+      color: #78909C;
+      margin-top: 2px;
+    }
+    .chart-card {
+      background: #FFFFFF;
+      border-radius: 16px;
+      padding: 16px 12px 12px 12px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding: 0 4px;
+    }
+    .chart-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1A2E1C;
+    }
+    .chart-badge {
+      font-size: 10px;
+      font-weight: 700;
+      background: #E8F5E9;
+      color: #1B5E20;
+      padding: 3px 8px;
+      border-radius: 12px;
+      border: 1px solid #A5D6A7;
+    }
+    .chart-container {
+      width: 100%;
+      height: 250px;
+      position: relative;
+    }
+    .legend-row {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-top: 8px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+    }
+    .legend-dot.income { background: #2E7D32; }
+    .legend-dot.expense { background: #D32F2F; }
+    .legend-dot.inventory { background: #00796B; }
+    .custom-tooltip {
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid #C8E6C9;
+      border-radius: 8px;
+      padding: 8px 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      font-size: 11px;
+    }
+    .tooltip-title {
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: #1B5E20;
+      border-bottom: 1px solid #E0E0E0;
+      padding-bottom: 2px;
+    }
+    .tooltip-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 2px 0;
+    }
+    .footer-note {
+      text-align: center;
+      font-size: 10px;
+      color: #78909C;
+      margin-top: 10px;
+      padding-bottom: 20px;
+    }
+    /* SVG Fallback renderer styles */
+    svg.recharts-surface {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+  </style>
+
+  <!-- React & Recharts UMD dependencies -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/prop-types/prop-types.min.js"></script>
+  <script src="https://unpkg.com/recharts/umd/Recharts.min.js"></script>
+</head>
+<body>
+  <div id="root">
+    <div style="text-align: center; padding: 40px; color: #2E7D32; font-weight: 600;">
+      Loading United Agro Farm Recharts Dashboard...
+    </div>
+  </div>
+
+  <script>
+    // Default placeholder data in case initial injection is waiting
+    var currentData = {
+      monthLabel: "October 2026 (असोज-कार्तिक २०८३)",
+      isEnglish: false,
+      kpis: {
+        totalIncome: 138500,
+        totalExpense: 68400,
+        netCashFlow: 70100,
+        inventoryValuation: 284200,
+        totalStockUnits: 345,
+        lowStockCount: 2
+      },
+      dailyData: [
+        { day: 1, dayLabel: "1 Oct", income: 14500, expense: 7200, net: 7300, inventoryValue: 260000 },
+        { day: 3, dayLabel: "3 Oct", income: 9600, expense: 2100, net: 7500, inventoryValue: 255000 },
+        { day: 5, dayLabel: "5 Oct", income: 18200, expense: 8400, net: 9800, inventoryValue: 268000 },
+        { day: 7, dayLabel: "7 Oct", income: 28000, expense: 4500, net: 23500, inventoryValue: 245000 },
+        { day: 9, dayLabel: "9 Oct", income: 14200, expense: 9800, net: 4400, inventoryValue: 252000 },
+        { day: 11, dayLabel: "11 Oct", income: 16800, expense: 6200, net: 10600, inventoryValue: 264000 },
+        { day: 13, dayLabel: "13 Oct", income: 13100, expense: 12400, net: 700, inventoryValue: 271000 },
+        { day: 14, dayLabel: "14 Oct", income: 24100, expense: 17800, net: 6300, inventoryValue: 284200 }
+      ]
+    };
+
+    function formatCurrency(val) {
+      if (val === undefined || val === null) return "रू 0";
+      return "रू " + Number(val).toLocaleString("en-IN");
+    }
+
+    function renderRechartsApp() {
+      try {
+        if (window.Recharts && window.React && window.ReactDOM) {
+          const React = window.React;
+          const { ResponsiveContainer, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend } = window.Recharts;
+
+          const IncomeExpenseTooltip = ({ active, payload, label }) => {
+            if (active && payload && payload.length) {
+              const d = payload[0].payload;
+              return React.createElement('div', { className: 'custom-tooltip' },
+                React.createElement('div', { className: 'tooltip-title' }, d.dayLabel + " Summary"),
+                React.createElement('div', { className: 'tooltip-row', style: { color: '#2E7D32' } },
+                  React.createElement('span', null, currentData.isEnglish ? 'Income:' : 'आम्दानी:'),
+                  React.createElement('strong', null, formatCurrency(d.income))
+                ),
+                React.createElement('div', { className: 'tooltip-row', style: { color: '#D32F2F' } },
+                  React.createElement('span', null, currentData.isEnglish ? 'Expense:' : 'खर्च:'),
+                  React.createElement('strong', null, formatCurrency(d.expense))
+                ),
+                React.createElement('div', { className: 'tooltip-row', style: { color: '#E65100', borderTop: '1px dashed #ccc', paddingTop: '2px', marginTop: '2px' } },
+                  React.createElement('span', null, currentData.isEnglish ? 'Net:' : 'खुद नाफा:'),
+                  React.createElement('strong', null, formatCurrency(d.net))
+                )
+              );
+            }
+            return null;
+          };
+
+          const InventoryTooltip = ({ active, payload, label }) => {
+            if (active && payload && payload.length) {
+              const d = payload[0].payload;
+              return React.createElement('div', { className: 'custom-tooltip' },
+                React.createElement('div', { className: 'tooltip-title' }, d.dayLabel + " Stock Valuation"),
+                React.createElement('div', { className: 'tooltip-row', style: { color: '#00796B' } },
+                  React.createElement('span', null, currentData.isEnglish ? 'Inventory Value:' : 'कुल स्टक मूल्य:'),
+                  React.createElement('strong', null, formatCurrency(d.inventoryValue))
+                )
+              );
+            }
+            return null;
+          };
+
+          const App = () => {
+            const isEn = currentData.isEnglish;
+            return React.createElement('div', null,
+              // Header
+              React.createElement('div', { className: 'dashboard-header' },
+                React.createElement('div', { className: 'farm-title' }, 'Lalitpur United Agro Farm Pvt. Ltd.'),
+                React.createElement('div', { className: 'month-title' }, currentData.monthLabel),
+                React.createElement('div', { className: 'sub-title' }, isEn ? 'Real-time Daily Income, Expense & Stock Trends' : 'दैनिक आय-व्यय तथा कुल मौज्दात मूल्य विश्लेषण (Recharts)')
+              ),
+
+              // KPI Cards
+              React.createElement('div', { className: 'kpi-grid' },
+                React.createElement('div', { className: 'kpi-card' },
+                  React.createElement('div', { className: 'kpi-label' }, isEn ? 'TOTAL INCOME' : 'कुल आम्दानी (महिना)'),
+                  React.createElement('div', { className: 'kpi-value' }, formatCurrency(currentData.kpis.totalIncome)),
+                  React.createElement('div', { className: 'kpi-sub' }, isEn ? 'Milk, Eggs, Veggies' : 'दूध, अण्डा, तरकारी बिक्री')
+                ),
+                React.createElement('div', { className: 'kpi-card expense' },
+                  React.createElement('div', { className: 'kpi-label' }, isEn ? 'TOTAL EXPENSES' : 'कुल खर्च (महिना)'),
+                  React.createElement('div', { className: 'kpi-value' }, formatCurrency(currentData.kpis.totalExpense)),
+                  React.createElement('div', { className: 'kpi-sub' }, isEn ? 'Feed, Vet, Fuel' : 'दाना, औषधि, इन्धन खर्च')
+                ),
+                React.createElement('div', { className: 'kpi-card net' },
+                  React.createElement('div', { className: 'kpi-label' }, isEn ? 'NET CASH FLOW' : 'खुद बचत / नाफा'),
+                  React.createElement('div', { className: 'kpi-value' }, formatCurrency(currentData.kpis.netCashFlow)),
+                  React.createElement('div', { className: 'kpi-sub' }, ((currentData.kpis.netCashFlow / (currentData.kpis.totalIncome || 1)) * 100).toFixed(1) + '% ' + (isEn ? 'Margin' : 'नाफा दर'))
+                ),
+                React.createElement('div', { className: 'kpi-card inventory' },
+                  React.createElement('div', { className: 'kpi-label' }, isEn ? 'STOCK VALUATION' : 'मौज्दात मूल्यांकन'),
+                  React.createElement('div', { className: 'kpi-value' }, formatCurrency(currentData.kpis.inventoryValuation)),
+                  React.createElement('div', { className: 'kpi-sub' }, currentData.kpis.totalStockUnits + (isEn ? ' units in stock' : ' एकाइ मौज्दात'))
+                )
+              ),
+
+              // Chart 1: Daily Income vs Expenses
+              React.createElement('div', { className: 'chart-card' },
+                React.createElement('div', { className: 'chart-header' },
+                  React.createElement('span', { className: 'chart-title' }, isEn ? 'Daily Income vs Expenses' : 'दैनिक आम्दानी र खर्च तुलना'),
+                  React.createElement('span', { className: 'chart-badge' }, 'Recharts BarChart')
+                ),
+                React.createElement('div', { className: 'chart-container' },
+                  React.createElement(ResponsiveContainer, { width: '100%', height: '100%' },
+                    React.createElement(BarChart, { data: currentData.dailyData, margin: { top: 10, right: 10, left: -15, bottom: 0 } },
+                      React.createElement(CartesianGrid, { strokeDasharray: '3 3', stroke: '#ECEFF1' }),
+                      React.createElement(XAxis, { dataKey: 'dayLabel', tick: { fontSize: 10, fill: '#546E7A' } }),
+                      React.createElement(YAxis, { tick: { fontSize: 9, fill: '#546E7A' }, tickFormatter: (v) => 'रू' + (v >= 1000 ? (v/1000).toFixed(0) + 'k' : v) }),
+                      React.createElement(Tooltip, { content: React.createElement(IncomeExpenseTooltip) }),
+                      React.createElement(Bar, { dataKey: 'income', name: isEn ? 'Income' : 'आम्दानी', fill: '#2E7D32', radius: [4, 4, 0, 0] }),
+                      React.createElement(Bar, { dataKey: 'expense', name: isEn ? 'Expense' : 'खर्च', fill: '#D32F2F', radius: [4, 4, 0, 0] })
+                    )
+                  )
+                ),
+                React.createElement('div', { className: 'legend-row' },
+                  React.createElement('div', { className: 'legend-item' },
+                    React.createElement('span', { className: 'legend-dot income' }),
+                    React.createElement('span', null, isEn ? 'Daily Income' : 'दैनिक आम्दानी')
+                  ),
+                  React.createElement('div', { className: 'legend-item' },
+                    React.createElement('span', { className: 'legend-dot expense' }),
+                    React.createElement('span', null, isEn ? 'Daily Expenses' : 'दैनिक खर्च')
+                  )
+                )
+              ),
+
+              // Chart 2: Total Inventory Value Trends
+              React.createElement('div', { className: 'chart-card' },
+                React.createElement('div', { className: 'chart-header' },
+                  React.createElement('span', { className: 'chart-title' }, isEn ? 'Total Inventory Value Trends' : 'कुल मौज्दात मूल्य ट्रेन्ड (महिना)'),
+                  React.createElement('span', { className: 'chart-badge' }, 'Recharts AreaChart')
+                ),
+                React.createElement('div', { className: 'chart-container' },
+                  React.createElement(ResponsiveContainer, { width: '100%', height: '100%' },
+                    React.createElement(AreaChart, { data: currentData.dailyData, margin: { top: 10, right: 10, left: -10, bottom: 0 } },
+                      React.createElement('defs', null,
+                        React.createElement('linearGradient', { id: 'invGradient', x1: '0', y1: '0', x2: '0', y2: '1' },
+                          React.createElement('stop', { offset: '5%', stopColor: '#00796B', stopOpacity: 0.8 }),
+                          React.createElement('stop', { offset: '95%', stopColor: '#00796B', stopOpacity: 0.05 })
+                        )
+                      ),
+                      React.createElement(CartesianGrid, { strokeDasharray: '3 3', stroke: '#ECEFF1' }),
+                      React.createElement(XAxis, { dataKey: 'dayLabel', tick: { fontSize: 10, fill: '#546E7A' } }),
+                      React.createElement(YAxis, { domain: ['auto', 'auto'], tick: { fontSize: 9, fill: '#546E7A' }, tickFormatter: (v) => 'रू' + (v >= 1000 ? (v/1000).toFixed(0) + 'k' : v) }),
+                      React.createElement(Tooltip, { content: React.createElement(InventoryTooltip) }),
+                      React.createElement(Area, {
+                        type: 'monotone',
+                        dataKey: 'inventoryValue',
+                        name: isEn ? 'Stock Value' : 'मौज्दात मूल्य',
+                        stroke: '#00796B',
+                        strokeWidth: 3,
+                        fillOpacity: 1,
+                        fill: 'url(#invGradient)',
+                        dot: { r: 3, fill: '#FFD54F', stroke: '#00796B', strokeWidth: 1.5 },
+                        activeDot: { r: 6 }
+                      })
+                    )
+                  )
+                ),
+                React.createElement('div', { className: 'legend-row' },
+                  React.createElement('div', { className: 'legend-item' },
+                    React.createElement('span', { className: 'legend-dot inventory' }),
+                    React.createElement('span', null, isEn ? 'Farm Stock Valuation Trend (NPR)' : 'फार्म कुल मौज्दात मूल्य रेखा (रू)')
+                  )
+                )
+              ),
+
+              React.createElement('div', { className: 'footer-note' },
+                'Lalitpur United Agro Farm Pvt. Ltd. • Powered by Recharts & Jetpack Compose'
+              )
+            );
+          };
+
+          const root = ReactDOM.createRoot(document.getElementById('root'));
+          root.render(React.createElement(App));
+          return true;
+        }
+      } catch (err) {
+        console.error("Recharts React render error, falling back to SVG:", err);
+      }
+      return false;
+    }
+
+    // High-fidelity SVG Fallback renderer for offline or prior to CDN resolution
+    function renderSvgFallback() {
+      const d = currentData;
+      const isEn = d.isEnglish;
+      const points = d.dailyData || [];
+      const maxVal = Math.max.apply(null, points.map(p => Math.max(p.income, p.expense)).concat([10000]));
+      const minInv = Math.min.apply(null, points.map(p => p.inventoryValue).concat([200000]));
+      const maxInv = Math.max.apply(null, points.map(p => p.inventoryValue).concat([300000]));
+
+      let barsHtml = '';
+      const w = 320;
+      const h = 180;
+      const n = points.length;
+      const slotW = w / (n || 1);
+      const barW = Math.max(4, Math.min(14, slotW * 0.35));
+
+      points.forEach((p, idx) => {
+        const cx = idx * slotW + slotW / 2;
+        const incH = (p.income / maxVal) * (h - 40);
+        const expH = (p.expense / maxVal) * (h - 40);
+        const incY = h - 25 - incH;
+        const expY = h - 25 - expH;
+
+        barsHtml += `
+          <rect x="${cx - barW - 1}" y="${incY}" width="${barW}" height="${incH}" fill="#2E7D32" rx="2" />
+          <rect x="${cx + 1}" y="${expY}" width="${barW}" height="${expH}" fill="#D32F2F" rx="2" />
+          <text x="${cx}" y="${h - 8}" text-anchor="middle" font-size="9" fill="#546E7A">${p.dayLabel}</text>
+        `;
+      });
+
+      // Inventory area path
+      let areaPath = '';
+      let linePath = '';
+      let dotsHtml = '';
+      if (points.length > 0) {
+        const invRange = (maxInv - minInv) || 1;
+        const pts = points.map((p, idx) => {
+          const x = idx * (w / (points.length - 1 || 1));
+          const y = (h - 30) - ((p.inventoryValue - minInv) / invRange) * (h - 55);
+          return { x, y, val: p.inventoryValue, label: p.dayLabel };
+        });
+
+        linePath = 'M ' + pts.map(pt => `${pt.x},${pt.y}`).join(' L ');
+        areaPath = `M ${pts[0].x},${h-25} L ` + pts.map(pt => `${pt.x},${pt.y}`).join(' L ') + ` L ${pts[pts.length-1].x},${h-25} Z`;
+
+        pts.forEach(pt => {
+          dotsHtml += `
+            <circle cx="${pt.x}" cy="${pt.y}" r="3.5" fill="#FFD54F" stroke="#00796B" stroke-width="2" />
+          `;
+        });
+      }
+
+      document.getElementById('root').innerHTML = `
+        <div class="dashboard-header">
+          <div class="farm-title">Lalitpur United Agro Farm Pvt. Ltd.</div>
+          <div class="month-title">${d.monthLabel}</div>
+          <div class="sub-title">${isEn ? 'Daily Financials & Stock Trend Summary' : 'दैनिक आय-व्यय तथा कुल मौज्दात मूल्य विश्लेषण'}</div>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-label">${isEn ? 'TOTAL INCOME' : 'कुल आम्दानी'}</div>
+            <div class="kpi-value">${formatCurrency(d.kpis.totalIncome)}</div>
+            <div class="kpi-sub">${isEn ? 'Monthly Sales' : 'दूध, अण्डा, तरकारी'}</div>
+          </div>
+          <div class="kpi-card expense">
+            <div class="kpi-label">${isEn ? 'TOTAL EXPENSES' : 'कुल खर्च'}</div>
+            <div class="kpi-value">${formatCurrency(d.kpis.totalExpense)}</div>
+            <div class="kpi-sub">${isEn ? 'Operational Costs' : 'दाना, औषधि, इन्धन'}</div>
+          </div>
+          <div class="kpi-card net">
+            <div class="kpi-label">${isEn ? 'NET CASH FLOW' : 'खुद बचत'}</div>
+            <div class="kpi-value">${formatCurrency(d.kpis.netCashFlow)}</div>
+            <div class="kpi-sub">${((d.kpis.netCashFlow / (d.kpis.totalIncome || 1)) * 100).toFixed(1)}% ${isEn ? 'Margin' : 'नाफा दर'}</div>
+          </div>
+          <div class="kpi-card inventory">
+            <div class="kpi-label">${isEn ? 'STOCK VALUATION' : 'मौज्दात मूल्यांकन'}</div>
+            <div class="kpi-value">${formatCurrency(d.kpis.inventoryValuation)}</div>
+            <div class="kpi-sub">${d.kpis.totalStockUnits} ${isEn ? 'units' : 'एकाइ स्टक'}</div>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-header">
+            <span class="chart-title">${isEn ? 'Daily Income vs Expenses' : 'दैनिक आम्दानी र खर्च तुलना'}</span>
+            <span class="chart-badge">Visual Chart</span>
+          </div>
+          <div class="chart-container">
+            <svg viewBox="0 0 ${w} ${h}" class="recharts-surface">
+              <line x1="0" y1="${h-25}" x2="${w}" y2="${h-25}" stroke="#CFD8DC" stroke-width="1" />
+              <line x1="0" y1="${(h-25)*0.5}" x2="${w}" y2="${(h-25)*0.5}" stroke="#ECEFF1" stroke-dasharray="3 3" />
+              ${barsHtml}
+            </svg>
+          </div>
+          <div class="legend-row">
+            <div class="legend-item"><span class="legend-dot income"></span><span>${isEn ? 'Income' : 'दैनिक आम्दानी'}</span></div>
+            <div class="legend-item"><span class="legend-dot expense"></span><span>${isEn ? 'Expenses' : 'दैनिक खर्च'}</span></div>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-header">
+            <span class="chart-title">${isEn ? 'Total Inventory Value Trends' : 'कुल मौज्दात मूल्य ट्रेन्ड (महिना)'}</span>
+            <span class="chart-badge">Area Trend</span>
+          </div>
+          <div class="chart-container">
+            <svg viewBox="0 0 ${w} ${h}" class="recharts-surface">
+              <defs>
+                <linearGradient id="svgInvGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#00796B" stop-opacity="0.6"/>
+                  <stop offset="100%" stop-color="#00796B" stop-opacity="0.05"/>
+                </linearGradient>
+              </defs>
+              <line x1="0" y1="${h-25}" x2="${w}" y2="${h-25}" stroke="#CFD8DC" stroke-width="1" />
+              <path d="${areaPath}" fill="url(#svgInvGrad)" />
+              <path d="${linePath}" fill="none" stroke="#00796B" stroke-width="2.5" />
+              ${dotsHtml}
+            </svg>
+          </div>
+          <div class="legend-row">
+            <div class="legend-item"><span class="legend-dot inventory"></span><span>${isEn ? 'Stock Valuation (NPR)' : 'कुल मौज्दात मूल्य ट्रेन्ड (रू)'}</span></div>
+          </div>
+        </div>
+
+        <div class="footer-note">
+          Lalitpur United Agro Farm Pvt. Ltd. • Recharts Dashboard
+        </div>
+      `;
+    }
+
+    // Attempt Recharts first, fallback to crisp SVG if Recharts script not ready
+    function initDashboard() {
+      if (!renderRechartsApp()) {
+        renderSvgFallback();
+        // Retry Recharts after a moment if scripts were downloading
+        setTimeout(function() {
+          renderRechartsApp();
+        }, 1200);
+      }
+    }
+
+    // Android Kotlin Bridge method
+    window.updateDashboardData = function(jsonStr) {
+      try {
+        var parsed = (typeof jsonStr === 'string') ? JSON.parse(jsonStr) : jsonStr;
+        currentData = parsed;
+        if (!renderRechartsApp()) {
+          renderSvgFallback();
+        }
+      } catch (e) {
+        console.error("Failed to parse dashboard data from Android:", e);
+      }
+    };
+
+    window.addEventListener('DOMContentLoaded', initDashboard);
+    setTimeout(initDashboard, 300);
+  </script>
+</body>
+</html>

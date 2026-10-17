@@ -1,0 +1,8 @@
+{
+  "name": "United Agro Farm",
+  "description": "Lalitpur United Agro Farm management app with inventory tracking, price list, order processing, and Muktinath Bikas Bank direct transfer payments.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

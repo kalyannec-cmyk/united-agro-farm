@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>United Agro Farm - Monthly Revenue Visualization (D3 & Recharts)</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+    body {
+      background-color: #F4F7F4;
+      color: #1A2E1C;
+      padding: 12px;
+      -webkit-font-smoothing: antialiased;
+    }
+    .header-banner {
+      background: linear-gradient(135deg, #1B5E20, #2E7D32);
+      color: #FFFFFF;
+      padding: 16px;
+      border-radius: 16px;
+      margin-bottom: 14px;
+      box-shadow: 0 4px 12px rgba(27, 94, 32, 0.2);
+    }
+    .farm-sub {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #FFD54F;
+      font-weight: 700;
+      margin-bottom: 3px;
+    }
+    .chart-title-main {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+    .chart-desc {
+      font-size: 12px;
+      color: #C8E6C9;
+    }
+
+    /* KPI Summary Cards */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .kpi-card {
+      background: #FFFFFF;
+      padding: 12px;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      border-left: 4px solid #2E7D32;
+    }
+    .kpi-card.verified {
+      border-left-color: #00796B;
+    }
+    .kpi-card.orders {
+      border-left-color: #F57F17;
+    }
+    .kpi-card.aov {
+      border-left-color: #3949AB;
+    }
+    .kpi-card-label {
+      font-size: 11px;
+      color: #556B56;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .kpi-card-value {
+      font-size: 16px;
+      font-weight: 800;
+      color: #1B5E20;
+    }
+    .kpi-card.verified .kpi-card-value { color: #00796B; }
+    .kpi-card.orders .kpi-card-value { color: #E65100; }
+    .kpi-card.aov .kpi-card-value { color: #283593; }
+    .kpi-card-sub {
+      font-size: 10px;
+      color: #78909C;
+      margin-top: 2px;
+    }
+
+    /* Tab switcher for chart mode */
+    .view-tabs {
+      display: flex;
+      background: #E8F5E9;
+      padding: 4px;
+      border-radius: 12px;
+      margin-bottom: 14px;
+      gap: 4px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 8px 4px;
+      font-size: 11px;
+      font-weight: 700;
+      text-align: center;
+      border: none;
+      background: transparent;
+      color: #2E7D32;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .tab-btn.active {
+      background: #2E7D32;
+      color: #FFFFFF;
+      box-shadow: 0 2px 6px rgba(46, 125, 50, 0.3);
+    }
+
+    /* Chart Container Card */
+    .chart-card {
+      background: #FFFFFF;
+      border-radius: 16px;
+      padding: 16px 12px 14px 12px;
+      margin-bottom: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .chart-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding: 0 4px;
+    }
+    .chart-heading {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1A2E1C;
+    }
+    .engine-badge {
+      font-size: 10px;
+      font-weight: 700;
+      background: #E8F5E9;
+      color: #1B5E20;
+      padding: 3px 8px;
+      border-radius: 12px;
+      border: 1px solid #A5D6A7;
+    }
+
+    .svg-container {
+      width: 100%;
+      height: 250px;
+      position: relative;
+    }
+
+    /* Tooltip styles */
+    .chart-tooltip {
+      position: absolute;
+      display: none;
+      background: rgba(255, 255, 255, 0.98);
+      border: 1px solid #C8E6C9;
+      border-radius: 10px;
+      padding: 8px 12px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+      font-size: 11px;
+      pointer-events: none;
+      z-index: 100;
+      min-width: 130px;
+      transform: translate(-50%, -100%);
+      margin-top: -10px;
+    }
+    .tooltip-header {
+      font-weight: 700;
+      color: #1B5E20;
+      border-bottom: 1px solid #EEEEEE;
+      padding-bottom: 3px;
+      margin-bottom: 4px;
+    }
+    .tooltip-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 2px 0;
+    }
+    .tooltip-val {
+      font-weight: 700;
+      color: #2E7D32;
+    }
+
+    /* Legend Row */
+    .legend-box {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 10px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .legend-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+    }
+
+    /* Breakdown Table */
+    .table-card {
+      background: #FFFFFF;
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .table-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1A2E1C;
+      margin-bottom: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+    th {
+      text-align: left;
+      padding: 6px 4px;
+      color: #546E7A;
+      border-bottom: 1.5px solid #ECEFF1;
+      font-weight: 600;
+    }
+    td {
+      padding: 8px 4px;
+      border-bottom: 1px solid #F0F4F1;
+      color: #263238;
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+    .rev-strong {
+      font-weight: 700;
+      color: #1B5E20;
+    }
+    .orders-badge {
+      background: #E8F5E9;
+      color: #2E7D32;
+      padding: 2px 6px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 10px;
+      display: inline-block;
+    }
+
+    /* Footer note */
+    .footer-credit {
+      text-align: center;
+      font-size: 10px;
+      color: #78909C;
+      padding: 10px 0 20px 0;
+    }
+  </style>
+
+  <!-- D3.js and Recharts CDN dependencies -->
+  <script src="https://unpkg.com/d3@7/dist/d3.min.js"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/prop-types/prop-types.min.js"></script>
+  <script src="https://unpkg.com/recharts/umd/Recharts.min.js"></script>
+</head>
+<body>
+
+  <!-- Header Banner -->
+  <div class="header-banner">
+    <div class="farm-sub">Lalitpur United Agro Farm Pvt. Ltd.</div>
+    <div class="chart-title-main" id="screenTitle">मासिक आम्दानी विश्लेषण</div>
+    <div class="chart-desc" id="screenSubtitle">Room Database अर्डरहरूबाट वास्तविक मासिक वित्तीय ग्राफ (D3 & Recharts)</div>
+  </div>
+
+  <!-- KPI Grid -->
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-card-label" id="lblTotalRev">कुल आम्दानी (REVENUE)</div>
+      <div class="kpi-card-value" id="valTotalRev">रू 0</div>
+      <div class="kpi-card-sub" id="subTotalRev">सबै अर्डरहरूको योग</div>
+    </div>
+    <div class="kpi-card verified">
+      <div class="kpi-card-label" id="lblVerifiedRev">प्रमाणित आम्दानी</div>
+      <div class="kpi-card-value" id="valVerifiedRev">रू 0</div>
+      <div class="kpi-card-sub" id="subVerifiedRev">Verified & Completed</div>
+    </div>
+    <div class="kpi-card orders">
+      <div class="kpi-card-label" id="lblTotalOrders">कुल अर्डर संख्या</div>
+      <div class="kpi-card-value" id="valTotalOrders">0</div>
+      <div class="kpi-card-sub" id="subTotalOrders">डाटाबेसमा सुरक्षित</div>
+    </div>
+    <div class="kpi-card aov">
+      <div class="kpi-card-label" id="lblAov">औसत अर्डर मूल्य (AOV)</div>
+      <div class="kpi-card-value" id="valAov">रू 0</div>
+      <div class="kpi-card-sub" id="subAov">प्रति अर्डर औसत</div>
+    </div>
+  </div>
+
+  <!-- View Mode Switcher -->
+  <div class="view-tabs">
+    <button class="tab-btn active" id="tabD3Bars" onclick="setChartMode('d3_bars')">D3 Monthly Bars</button>
+    <button class="tab-btn" id="tabRecharts" onclick="setChartMode('recharts_area')">Recharts Area</button>
+    <button class="tab-btn" id="tabD3Donut" onclick="setChartMode('d3_donut')">D3 Status Donut</button>
+  </div>
+
+  <!-- Chart Card -->
+  <div class="chart-card">
+    <div class="chart-card-header">
+      <span class="chart-heading" id="chartHeading">Monthly Revenue Chart</span>
+      <span class="engine-badge" id="engineBadge">D3.js SVG</span>
+    </div>
+
+    <div class="svg-container" id="chartHost">
+      <svg id="d3Svg" width="100%" height="100%" viewBox="0 0 340 230" preserveAspectRatio="xMidYMid meet"></svg>
+      <div id="rechartsHost" style="display: none; width: 100%; height: 100%;"></div>
+      <div class="chart-tooltip" id="tooltip"></div>
+    </div>
+
+    <div class="legend-box" id="legendContainer">
+      <div class="legend-item">
+        <span class="legend-color" style="background: #2E7D32;"></span>
+        <span id="legRevenue">मासिक आम्दानी (Monthly Revenue)</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-color" style="background: #FFB300;"></span>
+        <span id="legTrend">औसत रेखा (Average Trend)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Monthly Table Card -->
+  <div class="table-card">
+    <div class="table-title" id="tableTitle">महिना अनुसार आम्दानी तालिका (Monthly Breakdown)</div>
+    <table>
+      <thead>
+        <tr>
+          <th id="thMonth">महिना (Month)</th>
+          <th id="thOrders">अर्डर</th>
+          <th style="text-align: right;" id="thRevenue">आम्दानी (NPR)</th>
+          <th style="text-align: right;" id="thVerified">प्रमाणित</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <tr><td colspan="4" style="text-align:center; padding: 12px; color: #78909C;">Loading database records...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer-credit">
+    Lalitpur United Agro Farm Pvt. Ltd. • D3.js & Recharts Data Engine
+  </div>
+
+  <script>
+    // Global data holder
+    var currentData = {
+      isEnglish: false,
+      totalRevenue: 34800,
+      verifiedRevenue: 28000,
+      pendingRevenue: 6800,
+      totalOrders: 10,
+      averageOrderValue: 3480,
+      peakMonth: "2026-10",
+      peakMonthRevenue: 13100,
+      months: [
+        { monthKey: "2026-05", monthLabelNp: "जेठ २०८३", monthLabelEn: "May 2026", revenue: 4800, verifiedRevenue: 4800, orderCount: 2, aov: 2400 },
+        { monthKey: "2026-06", monthLabelNp: "असार २०८३", monthLabelEn: "Jun 2026", revenue: 5200, verifiedRevenue: 5200, orderCount: 2, aov: 2600 },
+        { monthKey: "2026-07", monthLabelNp: "साउन २०८३", monthLabelEn: "Jul 2026", revenue: 6400, verifiedRevenue: 6400, orderCount: 2, aov: 3200 },
+        { monthKey: "2026-08", monthLabelNp: "भदौ २०८३", monthLabelEn: "Aug 2026", revenue: 7600, verifiedRevenue: 7600, orderCount: 3, aov: 2533 },
+        { monthKey: "2026-09", monthLabelNp: "असोज २०८३", monthLabelEn: "Sep 2026", revenue: 9800, verifiedRevenue: 9800, orderCount: 3, aov: 3266 },
+        { monthKey: "2026-10", monthLabelNp: "कार्तिक २०८३", monthLabelEn: "Oct 2026", revenue: 13100, verifiedRevenue: 6300, orderCount: 4, aov: 3275 }
+      ],
+      statusBreakdown: [
+        { status: "VERIFIED", labelNp: "प्रमाणित", labelEn: "Verified", count: 6, amount: 24800, color: "#2E7D32" },
+        { status: "COMPLETED", labelNp: "सम्पन्न", labelEn: "Completed", count: 2, amount: 4800, color: "#00796B" },
+        { status: "PENDING", labelNp: "प्रतिक्षारत", labelEn: "Pending", count: 2, amount: 5200, color: "#F57F17" }
+      ],
+      paymentModeBreakdown: [
+        { mode: "BANK_TRANSFER", labelNp: "मुक्तिनाथ बैंक", labelEn: "Muktinath Bank", count: 7, amount: 26800, color: "#1B5E20" },
+        { mode: "CASH_ON_DELIVERY", labelNp: "नगद (COD)", labelEn: "Cash on Delivery", count: 2, amount: 4800, color: "#FFB300" },
+        { mode: "ESEWA", labelNp: "ईसेवा (eSewa)", labelEn: "eSewa Wallet", count: 1, amount: 3200, color: "#43A047" }
+      ]
+    };
+
+    var currentChartMode = 'd3_bars'; // 'd3_bars', 'recharts_area', 'd3_donut'
+
+    function formatNpr(num) {
+      if (num === undefined || num === null) return "रू 0";
+      return "रू " + Number(num).toLocaleString('en-IN');
+    }
+
+    function setChartMode(mode) {
+      currentChartMode = mode;
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      if (mode === 'd3_bars') document.getElementById('tabD3Bars').classList.add('active');
+      if (mode === 'recharts_area') document.getElementById('tabRecharts').classList.add('active');
+      if (mode === 'd3_donut') document.getElementById('tabD3Donut').classList.add('active');
+      renderCurrentChart();
+    }
+
+    function updateUiLabels() {
+      const isEn = currentData.isEnglish;
+      document.getElementById('screenTitle').textContent = isEn ? "Monthly Revenue Visualization" : "मासिक आम्दानी विश्लेषण";
+      document.getElementById('screenSubtitle').textContent = isEn ? "Visual charts based on Room Database Orders (D3 & Recharts)" : "Room Database अर्डरहरूबाट वास्तविक मासिक वित्तीय ग्राफ (D3 & Recharts)";
+
+      document.getElementById('lblTotalRev').textContent = isEn ? "TOTAL REVENUE" : "कुल आम्दानी (REVENUE)";
+      document.getElementById('subTotalRev').textContent = isEn ? "All Orders Stored in DB" : "सबै अर्डरहरूको योग";
+
+      document.getElementById('lblVerifiedRev').textContent = isEn ? "VERIFIED REVENUE" : "प्रमाणित आम्दानी";
+      document.getElementById('subVerifiedRev').textContent = isEn ? "Paid & Confirmed Orders" : "Verified & Completed";
+
+      document.getElementById('lblTotalOrders').textContent = isEn ? "TOTAL ORDERS" : "कुल अर्डर संख्या";
+      document.getElementById('subTotalOrders').textContent = isEn ? "Recorded in Database" : "डाटाबेसमा सुरक्षित";
+
+      document.getElementById('lblAov').textContent = isEn ? "AVG ORDER VALUE (AOV)" : "औसत अर्डर मूल्य (AOV)";
+      document.getElementById('subAov').textContent = isEn ? "Per Order Average" : "प्रति अर्डर औसत";
+
+      document.getElementById('valTotalRev').textContent = formatNpr(currentData.totalRevenue);
+      document.getElementById('valVerifiedRev').textContent = formatNpr(currentData.verifiedRevenue);
+      document.getElementById('valTotalOrders').textContent = currentData.totalOrders;
+      document.getElementById('valAov').textContent = formatNpr(currentData.averageOrderValue);
+
+      document.getElementById('tableTitle').textContent = isEn ? "Monthly Revenue Breakdown Table" : "महिना अनुसार आम्दानी तालिका (Monthly Breakdown)";
+      document.getElementById('thMonth').textContent = isEn ? "Month" : "महिना (Month)";
+      document.getElementById('thOrders').textContent = isEn ? "Orders" : "अर्डर";
+      document.getElementById('thRevenue').textContent = isEn ? "Revenue (NPR)" : "आम्दानी (NPR)";
+      document.getElementById('thVerified').textContent = isEn ? "Verified" : "प्रमाणित";
+
+      // Render table rows
+      const tbody = document.getElementById('tableBody');
+      const months = currentData.months || [];
+      if (months.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:12px; color:#78909C;">${isEn ? 'No orders in database' : 'डाटाबेसमा अर्डर भेटिएन'}</td></tr>`;
+      } else {
+        let rowsHtml = '';
+        months.forEach(m => {
+          const label = isEn ? (m.monthLabelEn || m.monthKey) : (m.monthLabelNp || m.monthKey);
+          rowsHtml += `
+            <tr>
+              <td><strong>${label}</strong></td>
+              <td><span class="orders-badge">${m.orderCount} ${isEn ? 'orders' : 'वटा'}</span></td>
+              <td style="text-align: right;" class="rev-strong">${formatNpr(m.revenue)}</td>
+              <td style="text-align: right; color: #00796B; font-weight: 600;">${formatNpr(m.verifiedRevenue)}</td>
+            </tr>
+          `;
+        });
+        tbody.innerHTML = rowsHtml;
+      }
+    }
+
+    function renderCurrentChart() {
+      updateUiLabels();
+      const isEn = currentData.isEnglish;
+      const d3Svg = document.getElementById('d3Svg');
+      const rechartsHost = document.getElementById('rechartsHost');
+      const engineBadge = document.getElementById('engineBadge');
+      const chartHeading = document.getElementById('chartHeading');
+      const legendContainer = document.getElementById('legendContainer');
+
+      if (currentChartMode === 'd3_bars') {
+        d3Svg.style.display = 'block';
+        rechartsHost.style.display = 'none';
+        engineBadge.textContent = 'D3.js BarChart';
+        chartHeading.textContent = isEn ? 'Monthly Revenue (D3 Interactive Bars)' : 'मासिक आम्दानी (D3.js स्तम्भ ग्राफ)';
+        legendContainer.innerHTML = `
+          <div class="legend-item"><span class="legend-color" style="background: #2E7D32;"></span><span>${isEn ? 'Monthly Revenue' : 'मासिक आम्दानी'}</span></div>
+          <div class="legend-item"><span class="legend-color" style="background: #FFB300;"></span><span>${isEn ? 'Average Value' : 'औसत आम्दानी'}</span></div>
+        `;
+        renderD3Bars();
+      } else if (currentChartMode === 'recharts_area') {
+        chartHeading.textContent = isEn ? 'Revenue Trend (Recharts Area)' : 'आम्दानी ट्रेन्ड (Recharts एरिया ग्राफ)';
+        engineBadge.textContent = 'Recharts UMD';
+        legendContainer.innerHTML = `
+          <div class="legend-item"><span class="legend-color" style="background: #00796B;"></span><span>${isEn ? 'Revenue Curve' : 'आम्दानी रेखा'}</span></div>
+          <div class="legend-item"><span class="legend-color" style="background: #2E7D32;"></span><span>${isEn ? 'Cumulative Growth' : 'कुल वृद्धि'}</span></div>
+        `;
+        if (!renderRechartsArea()) {
+          // Fallback to D3 area if Recharts script unavailable
+          d3Svg.style.display = 'block';
+          rechartsHost.style.display = 'none';
+          engineBadge.textContent = 'D3.js Fallback Area';
+          renderD3AreaFallback();
+        } else {
+          d3Svg.style.display = 'none';
+          rechartsHost.style.display = 'block';
+        }
+      } else if (currentChartMode === 'd3_donut') {
+        d3Svg.style.display = 'block';
+        rechartsHost.style.display = 'none';
+        engineBadge.textContent = 'D3.js Donut';
+        chartHeading.textContent = isEn ? 'Revenue Breakdown (Status & Mode)' : 'अर्डर तथा भुक्तानी वर्गीकरण (D3)';
+        legendContainer.innerHTML = '';
+        renderD3Donut();
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // D3.js BAR & TREND CHART
+    // -------------------------------------------------------------------------
+    function renderD3Bars() {
+      const svg = d3.select("#d3Svg");
+      svg.selectAll("*").remove();
+
+      const tooltip = d3.select("#tooltip");
+      const isEn = currentData.isEnglish;
+      const months = currentData.months || [];
+
+      const width = 340;
+      const height = 230;
+      const margin = { top: 25, right: 15, bottom: 35, left: 45 };
+      const innerW = width - margin.left - margin.right;
+      const innerH = height - margin.top - margin.bottom;
+
+      if (months.length === 0) {
+        svg.append("text")
+          .attr("x", width / 2)
+          .attr("y", height / 2)
+          .attr("text-anchor", "middle")
+          .attr("fill", "#78909C")
+          .attr("font-size", "12px")
+          .text(isEn ? "No order data available in database" : "डाटाबेसमा अर्डर तथ्यांक उपलब्ध छैन");
+        return;
+      }
+
+      const g = svg.append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+      // Defs for gradient
+      const defs = svg.append("defs");
+      const barGrad = defs.append("linearGradient")
+        .attr("id", "d3BarGrad")
+        .attr("x1", "0%").attr("y1", "0%")
+        .attr("x2", "0%").attr("y2", "100%");
+      barGrad.append("stop").attr("offset", "0%").attr("stop-color", "#43A047");
+      barGrad.append("stop").attr("offset", "100%").attr("stop-color", "#1B5E20");
+
+      const maxRev = d3.max(months, d => d.revenue) || 1000;
+      const avgRev = d3.mean(months, d => d.revenue) || 0;
+
+      // X & Y scales
+      const x = d3.scaleBand()
+        .domain(months.map(d => isEn ? (d.monthLabelEn || d.monthKey) : (d.monthLabelNp || d.monthKey)))
+        .range([0, innerW])
+        .padding(0.3);
+
+      const y = d3.scaleLinear()
+        .domain([0, maxRev * 1.15])
+        .nice()
+        .range([innerH, 0]);
+
+      // Grid lines
+      g.append("g")
+        .attr("class", "grid")
+        .call(d3.axisLeft(y)
+          .ticks(4)
+          .tickSize(-innerW)
+          .tickFormat("")
+        )
+        .selectAll("line")
+        .attr("stroke", "#ECEFF1")
+        .attr("stroke-dasharray", "3 3");
+
+      // X Axis
+      g.append("g")
+        .attr("transform", `translate(0,${innerH})`)
+        .call(d3.axisBottom(x))
+        .selectAll("text")
+        .attr("font-size", "9px")
+        .attr("fill", "#546E7A")
+        .attr("font-weight", "600");
+
+      // Y Axis
+      g.append("g")
+        .call(d3.axisLeft(y).ticks(4).tickFormat(d => "रू" + (d >= 1000 ? (d/1000).toFixed(0) + "k" : d)))
+        .selectAll("text")
+        .attr("font-size", "9px")
+        .attr("fill", "#546E7A");
+
+      // Bars
+      g.selectAll(".rev-bar")
+        .data(months)
+        .enter()
+        .append("rect")
+        .attr("class", "rev-bar")
+        .attr("x", d => x(isEn ? (d.monthLabelEn || d.monthKey) : (d.monthLabelNp || d.monthKey)))
+        .attr("width", x.bandwidth())
+        .attr("y", d => y(d.revenue))
+        .attr("height", d => innerH - y(d.revenue))
+        .attr("fill", "url(#d3BarGrad)")
+        .attr("rx", 4)
+        .on("mouseenter touchstart", function(event, d) {
+          d3.select(this).attr("fill", "#FFB300");
+          const label = isEn ? (d.monthLabelEn || d.monthKey) : (d.monthLabelNp || d.monthKey);
+          tooltip.style("display", "block")
+            .style("left", (event.pageX || event.touches[0].pageX) + "px")
+            .style("top", (event.pageY || event.touches[0].pageY - 30) + "px")
+            .html(`
+              <div class="tooltip-header">${label}</div>
+              <div class="tooltip-item"><span>${isEn ? 'Revenue:' : 'कुल आम्दानी:'}</span><span class="tooltip-val">${formatNpr(d.revenue)}</span></div>
+              <div class="tooltip-item"><span>${isEn ? 'Verified:' : 'प्रमाणित:'}</span><span style="color:#00796B; font-weight:700;">${formatNpr(d.verifiedRevenue)}</span></div>
+              <div class="tooltip-item"><span>${isEn ? 'Orders:' : 'अर्डर संख्या:'}</span><strong>${d.orderCount}</strong></div>
+              <div class="tooltip-item"><span>${isEn ? 'AOV:' : 'औसत अर्डर:'}</span><strong>${formatNpr(d.aov)}</strong></div>
+            `);
+        })
+        .on("mouseleave touchend", function() {
+          d3.select(this).attr("fill", "url(#d3BarGrad)");
+          tooltip.style("display", "none");
+        });
+
+      // Value labels above bars
+      g.selectAll(".bar-val-label")
+        .data(months)
+        .enter()
+        .append("text")
+        .attr("x", d => x(isEn ? (d.monthLabelEn || d.monthKey) : (d.monthLabelNp || d.monthKey)) + x.bandwidth() / 2)
+        .attr("y", d => y(d.revenue) - 5)
+        .attr("text-anchor", "middle")
+        .attr("font-size", "8.5px")
+        .attr("font-weight", "700")
+        .attr("fill", "#1B5E20")
+        .text(d => d.revenue >= 1000 ? (d.revenue / 1000).toFixed(1) + "k" : d.revenue);
+
+      // Average Line
+      if (avgRev > 0) {
+        g.append("line")
+          .attr("x1", 0)
+          .attr("x2", innerW)
+          .attr("y1", y(avgRev))
+          .attr("y2", y(avgRev))
+          .attr("stroke", "#FFB300")
+          .attr("stroke-width", 2)
+          .attr("stroke-dasharray", "4 4");
+
+        g.append("text")
+          .attr("x", innerW - 4)
+          .attr("y", y(avgRev) - 4)
+          .attr("text-anchor", "end")
+          .attr("font-size", "8px")
+          .attr("font-weight", "700")
+          .attr("fill", "#E65100")
+          .text("Avg: " + formatNpr(avgRev));
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // D3.js DONUT CHART (Status & Payment Mode Breakdown)
+    // -------------------------------------------------------------------------
+    function renderD3Donut() {
+      const svg = d3.select("#d3Svg");
+      svg.selectAll("*").remove();
+
+      const tooltip = d3.select("#tooltip");
+      const isEn = currentData.isEnglish;
+      const data = currentData.statusBreakdown || [];
+
+      const width = 340;
+      const height = 230;
+      const radius = Math.min(width, height) / 2 - 20;
+
+      const g = svg.append("g")
+        .attr("transform", `translate(${width / 2},${height / 2})`);
+
+      const color = d3.scaleOrdinal()
+        .domain(data.map(d => d.status))
+        .range(["#2E7D32", "#00796B", "#F57F17", "#D32F2F"]);
+
+      const pie = d3.pie()
+        .value(d => d.amount)
+        .sort(null);
+
+      const arc = d3.arc()
+        .innerRadius(radius * 0.52)
+        .outerRadius(radius * 0.85);
+
+      const outerArc = d3.arc()
+        .innerRadius(radius * 0.9)
+        .outerRadius(radius * 0.9);
+
+      const arcs = g.selectAll(".arc")
+        .data(pie(data))
+        .enter()
+        .append("g")
+        .attr("class", "arc");
+
+      arcs.append("path")
+        .attr("d", arc)
+        .attr("fill", d => d.data.color || color(d.data.status))
+        .attr("stroke", "#FFFFFF")
+        .attr("stroke-width", 2)
+        .on("mouseenter touchstart", function(event, d) {
+          d3.select(this).transition().duration(200).attr("transform", "scale(1.05)");
+          const item = d.data;
+          const label = isEn ? item.labelEn : item.labelNp;
+          tooltip.style("display", "block")
+            .style("left", (event.pageX || event.touches[0].pageX) + "px")
+            .style("top", (event.pageY || event.touches[0].pageY - 30) + "px")
+            .html(`
+              <div class="tooltip-header">${label}</div>
+              <div class="tooltip-item"><span>${isEn ? 'Amount:' : 'रकम:'}</span><span class="tooltip-val">${formatNpr(item.amount)}</span></div>
+              <div class="tooltip-item"><span>${isEn ? 'Orders:' : 'अर्डर संख्या:'}</span><strong>${item.count}</strong></div>
+              <div class="tooltip-item"><span>${isEn ? 'Share:' : 'प्रतिशत:'}</span><strong>${((item.amount / (currentData.totalRevenue || 1)) * 100).toFixed(1)}%</strong></div>
+            `);
+        })
+        .on("mouseleave touchend", function() {
+          d3.select(this).transition().duration(200).attr("transform", "scale(1)");
+          tooltip.style("display", "none");
+        });
+
+      // Center Text
+      g.append("text")
+        .attr("text-anchor", "middle")
+        .attr("dy", "-0.2em")
+        .attr("font-size", "14px")
+        .attr("font-weight", "800")
+        .attr("fill", "#1B5E20")
+        .text(formatNpr(currentData.totalRevenue));
+
+      g.append("text")
+        .attr("text-anchor", "middle")
+        .attr("dy", "1.2em")
+        .attr("font-size", "9px")
+        .attr("font-weight", "600")
+        .attr("fill", "#546E7A")
+        .text(isEn ? "Total Revenue" : "कुल आम्दानी");
+
+      // Legend in legendContainer
+      const legendContainer = document.getElementById('legendContainer');
+      let legHtml = '';
+      data.forEach(item => {
+        const label = isEn ? item.labelEn : item.labelNp;
+        legHtml += `
+          <div class="legend-item">
+            <span class="legend-color" style="background: ${item.color || color(item.status)};"></span>
+            <span>${label} (${formatNpr(item.amount)})</span>
+          </div>
+        `;
+      });
+      legendContainer.innerHTML = legHtml;
+    }
+
+    // -------------------------------------------------------------------------
+    // RECHARTS AREA CHART (React & Recharts UMD)
+    // -------------------------------------------------------------------------
+    function renderRechartsArea() {
+      try {
+        if (window.React && window.ReactDOM && window.Recharts) {
+          const React = window.React;
+          const { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } = window.Recharts;
+          const isEn = currentData.isEnglish;
+
+          const RechartsCustomTooltip = ({ active, payload, label }) => {
+            if (active && payload && payload.length) {
+              const d = payload[0].payload;
+              return React.createElement('div', { className: 'chart-tooltip', style: { display: 'block', position: 'relative', transform: 'none' } },
+                React.createElement('div', { className: 'tooltip-header' }, label),
+                React.createElement('div', { className: 'tooltip-item' },
+                  React.createElement('span', null, isEn ? 'Revenue:' : 'मासिक आम्दानी:'),
+                  React.createElement('span', { className: 'tooltip-val' }, formatNpr(d.revenue))
+                ),
+                React.createElement('div', { className: 'tooltip-item' },
+                  React.createElement('span', null, isEn ? 'Verified:' : 'प्रमाणित:'),
+                  React.createElement('span', { style: { color: '#00796B', fontWeight: 700 } }, formatNpr(d.verifiedRevenue))
+                ),
+                React.createElement('div', { className: 'tooltip-item' },
+                  React.createElement('span', null, isEn ? 'Orders:' : 'अर्डर:'),
+                  React.createElement('strong', null, d.orderCount)
+                )
+              );
+            }
+            return null;
+          };
+
+          const chartData = (currentData.months || []).map(m => ({
+            name: isEn ? (m.monthLabelEn || m.monthKey) : (m.monthLabelNp || m.monthKey),
+            revenue: m.revenue,
+            verifiedRevenue: m.verifiedRevenue,
+            orderCount: m.orderCount,
+            aov: m.aov
+          }));
+
+          const RechartsApp = () => {
+            return React.createElement(ResponsiveContainer, { width: '100%', height: '100%' },
+              React.createElement(AreaChart, { data: chartData, margin: { top: 15, right: 10, left: -10, bottom: 0 } },
+                React.createElement('defs', null,
+                  React.createElement('linearGradient', { id: 'recGrad', x1: '0', y1: '0', x2: '0', y2: '1' },
+                    React.createElement('stop', { offset: '5%', stopColor: '#2E7D32', stopOpacity: 0.8 }),
+                    React.createElement('stop', { offset: '95%', stopColor: '#2E7D32', stopOpacity: 0.05 })
+                  ),
+                  React.createElement('linearGradient', { id: 'verGrad', x1: '0', y1: '0', x2: '0', y2: '1' },
+                    React.createElement('stop', { offset: '5%', stopColor: '#00796B', stopOpacity: 0.8 }),
+                    React.createElement('stop', { offset: '95%', stopColor: '#00796B', stopOpacity: 0.05 })
+                  )
+                ),
+                React.createElement(CartesianGrid, { strokeDasharray: '3 3', stroke: '#ECEFF1' }),
+                React.createElement(XAxis, { dataKey: 'name', tick: { fontSize: 9, fill: '#546E7A' } }),
+                React.createElement(YAxis, { tick: { fontSize: 9, fill: '#546E7A' }, tickFormatter: (v) => 'रू' + (v >= 1000 ? (v/1000).toFixed(0) + 'k' : v) }),
+                React.createElement(Tooltip, { content: React.createElement(RechartsCustomTooltip) }),
+                React.createElement(Area, {
+                  type: 'monotone',
+                  dataKey: 'revenue',
+                  name: isEn ? 'Revenue' : 'आम्दानी',
+                  stroke: '#2E7D32',
+                  strokeWidth: 3,
+                  fillOpacity: 1,
+                  fill: 'url(#recGrad)',
+                  dot: { r: 3, fill: '#FFB300', stroke: '#2E7D32', strokeWidth: 1.5 },
+                  activeDot: { r: 6 }
+                }),
+                React.createElement(Area, {
+                  type: 'monotone',
+                  dataKey: 'verifiedRevenue',
+                  name: isEn ? 'Verified' : 'प्रमाणित',
+                  stroke: '#00796B',
+                  strokeWidth: 2,
+                  fillOpacity: 1,
+                  fill: 'url(#verGrad)',
+                  dot: { r: 2.5, fill: '#80CBC4', stroke: '#00796B', strokeWidth: 1 }
+                })
+              )
+            );
+          };
+
+          const host = document.getElementById('rechartsHost');
+          if (!window._rechartsRoot) {
+            window._rechartsRoot = ReactDOM.createRoot(host);
+          }
+          window._rechartsRoot.render(React.createElement(RechartsApp));
+          return true;
+        }
+      } catch (err) {
+        console.warn("Recharts render failed, falling back to D3 area:", err);
+      }
+      return false;
+    }
+
+    // High-performance D3 Area Fallback
+    function renderD3AreaFallback() {
+      const svg = d3.select("#d3Svg");
+      svg.selectAll("*").remove();
+
+      const tooltip = d3.select("#tooltip");
+      const isEn = currentData.isEnglish;
+      const months = currentData.months || [];
+
+      const width = 340;
+      const height = 230;
+      const margin = { top: 20, right: 15, bottom: 35, left: 45 };
+      const innerW = width - margin.left - margin.right;
+      const innerH = height - margin.top - margin.bottom;
+
+      const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+      const maxRev = d3.max(months, d => d.revenue) || 1000;
+
+      const x = d3.scalePoint()
+        .domain(months.map(d => isEn ? (d.monthLabelEn || d.monthKey) : (d.monthLabelNp || d.monthKey)))
+        .range([0, innerW]);
+
+      const y = d3.scaleLinear()
+        .domain([0, maxRev * 1.15])
+        .nice()
+        .range([innerH, 0]);
+
+      const defs = svg.append("defs");
+      const areaGrad = defs.append("linearGradient")
+        .attr("id", "d3AreaGrad")
+        .attr("x1", "0%").attr("y1", "0%")
+        .attr("x2", "0%").attr("y2", "100%");
+      areaGrad.append("stop").attr("offset", "0%").attr("stop-color", "#2E7D32").attr("stop-opacity", 0.7);
+      areaGrad.append("stop").attr("offset", "100%").attr("stop-color", "#2E7D32").attr("stop-opacity", 0.05);
+
+      // Area generator
+      const area = d3.area()
+        .x(d => x(isEn ? (d.monthLabelEn || d.monthKey) : (d.monthLabelNp || d.monthKey)))
+        .y0(innerH)
+        .y1(d => y(d.revenue))
+        .curve(d3.curveMonotoneX);
+
+      // Line generator
+      const line = d3.line()
+        .x(d => x(isEn ? (d.monthLabelEn || d.monthKey) : (d.monthLabelNp || d.monthKey)))
+        .y(d => y(d.revenue))
+        .curve(d3.curveMonotoneX);
+
+      g.append("g")
+        .attr("class", "grid")
+        .call(d3.axisLeft(y).ticks(4).tickSize(-innerW).tickFormat(""))
+        .selectAll("line").attr("stroke", "#ECEFF1").attr("stroke-dasharray", "3 3");
+
+      g.append("g")
+        .attr("transform", `translate(0,${innerH})`)
+        .call(d3.axisBottom(x))
+        .selectAll("text").attr("font-size", "9px").attr("fill", "#546E7A").attr("font-weight", "600");
+
+      g.append("g")
+        .call(d3.axisLeft(y).ticks(4).tickFormat(d => "रू" + (d >= 1000 ? (d/1000).toFixed(0) + "k" : d)))
+        .selectAll("text").attr("font-size", "9px").attr("fill", "#546E7A");
+
+      g.append("path")
+        .datum(months)
+        .attr("fill", "url(#d3AreaGrad)")
+        .attr("d", area);
+
+      g.append("path")
+        .datum(months)
+        .attr("fill", "none")
+        .attr("stroke", "#2E7D32")
+        .attr("stroke-width", 2.5)
+        .attr("d", line);
+
+      g.selectAll(".area-dot")
+        .data(months)
+        .enter()
+        .append("circle")
+        .attr("cx", d => x(isEn ? (d.monthLabelEn || d.monthKey) : (d.monthLabelNp || d.monthKey)))
+        .attr("cy", d => y(d.revenue))
+        .attr("r", 4)
+        .attr("fill", "#FFB300")
+        .attr("stroke", "#1B5E20")
+        .attr("stroke-width", 1.5);
+    }
+
+    // -------------------------------------------------------------------------
+    // ANDROID KOTLIN INTEROP BRIDGE
+    // -------------------------------------------------------------------------
+    window.updateRevenueData = function(jsonPayload) {
+      try {
+        var parsed = (typeof jsonPayload === 'string') ? JSON.parse(jsonPayload) : jsonPayload;
+        currentData = parsed;
+        renderCurrentChart();
+      } catch (err) {
+        console.error("Failed to parse Kotlin revenue data:", err);
+      }
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      renderCurrentChart();
+      setTimeout(renderCurrentChart, 300);
+    });
+  </script>
+</body>
+</html>

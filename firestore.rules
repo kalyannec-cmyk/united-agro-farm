@@ -1,0 +1,292 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net: Default-deny all unmatched paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidProduct(data) {
+      return data.nameNp is string && data.nameNp.size() >= 1 && data.nameNp.size() <= 150 &&
+             (!('nameEn' in data) || (data.nameEn is string && data.nameEn.size() <= 150)) &&
+             data.category is string && (data.category in ['DAIRY', 'POULTRY', 'LIVESTOCK', 'VEGETABLES', 'FERTILIZER_FEED']) &&
+             data.retailPrice is number && data.retailPrice >= 0 &&
+             (!('wholesalePrice' in data) || (data.wholesalePrice is number && data.wholesalePrice >= 0)) &&
+             data.unit is string && data.unit.size() <= 30 &&
+             data.stockQuantity is number && data.stockQuantity >= 0 &&
+             (!('minStockThreshold' in data) || (data.minStockThreshold is number && data.minStockThreshold >= 0)) &&
+             (!('descriptionNp' in data) || (data.descriptionNp is string && data.descriptionNp.size() <= 1000)) &&
+             (!('descriptionEn' in data) || (data.descriptionEn is string && data.descriptionEn.size() <= 1000)) &&
+             (!('sku' in data) || (data.sku is string && data.sku.size() <= 50)) &&
+             (!('isOrganicCertified' in data) || data.isOrganicCertified is bool) &&
+             data.userId is string && data.userId.size() <= 128;
+    }
+
+    function isValidFarmOrder(data) {
+      return data.userId is string && data.userId.size() <= 128 &&
+             data.customerName is string && data.customerName.size() >= 1 && data.customerName.size() <= 100 &&
+             data.customerPhone is string && data.customerPhone.size() >= 7 && data.customerPhone.size() <= 25 &&
+             (!('deliveryAddress' in data) || (data.deliveryAddress is string && data.deliveryAddress.size() <= 250)) &&
+             data.totalAmount is number && data.totalAmount >= 0 &&
+             (!('orderDate' in data) || (data.orderDate is string && data.orderDate.size() <= 100)) &&
+             data.status is string && (data.status in ['PENDING_VERIFICATION', 'VERIFIED', 'PROCESSING', 'DISPATCHED', 'COMPLETED']) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 500)) &&
+             (!('items' in data) || (data.items is list && data.items.size() <= 100)) &&
+             (!('bankTransfer' in data) || data.bankTransfer is map);
+    }
+
+    function isValidUserProfile(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 100 &&
+             (!('email' in data) || (data.email is string && data.email.size() <= 150)) &&
+             (!('phone' in data) || (data.phone is string && data.phone.size() <= 30)) &&
+             (!('role' in data) || (data.role is string && (data.role in ['CUSTOMER', 'STAFF', 'ADMIN'])));
+    }
+
+    function isValidEmployee(data) {
+      return data.userId is string && data.userId.size() <= 128 &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 100 &&
+             data.role is string && data.role.size() <= 100 &&
+             (!('phone' in data) || (data.phone is string && data.phone.size() <= 30)) &&
+             (!('dailyWage' in data) || (data.dailyWage is number && data.dailyWage >= 0)) &&
+             (!('monthlySalary' in data) || (data.monthlySalary is number && data.monthlySalary >= 0)) &&
+             (!('isActive' in data) || data.isActive is bool);
+    }
+
+    function isValidAttendance(data) {
+      return data.userId is string && data.userId.size() <= 128 &&
+             data.employeeId is string && data.employeeId.size() <= 128 &&
+             data.employeeName is string && data.employeeName.size() <= 100 &&
+             data.date is string && data.date.size() <= 20 &&
+             data.monthYear is string && data.monthYear.size() <= 10 &&
+             data.status is string && (data.status in ['PRESENT', 'ABSENT', 'HALF_DAY', 'PAID_LEAVE', 'OVERTIME']);
+    }
+
+    function isValidTransaction(data) {
+      return data.userId is string && data.userId.size() <= 128 &&
+             data.type is string && (data.type in ['INCOME', 'EXPENSE']) &&
+             data.category is string && data.category.size() <= 50 &&
+             data.amount is number && data.amount >= 0 &&
+             data.date is string && data.date.size() <= 20 &&
+             data.monthYear is string && data.monthYear.size() <= 10;
+    }
+
+    function isValidBalanceSheet(data) {
+      return data.userId is string && data.userId.size() <= 128 &&
+             data.cashInHand is number &&
+             data.bankBalanceMuktinath is number &&
+             data.fixedAssetsEquipment is number &&
+             data.ownerCapital is number;
+    }
+
+    function isValidOfficialDocument(data) {
+      return data.userId is string && data.userId.size() <= 128 &&
+             data.titleNp is string && data.titleNp.size() >= 1 && data.titleNp.size() <= 200 &&
+             (!('titleEn' in data) || (data.titleEn is string && data.titleEn.size() <= 200)) &&
+             data.documentNumber is string && data.documentNumber.size() >= 1 && data.documentNumber.size() <= 100 &&
+             data.category is string &&
+             data.issuingAuthorityNp is string && data.issuingAuthorityNp.size() <= 250 &&
+             data.issueDate is string && data.issueDate.size() <= 50 &&
+             data.status is string;
+    }
+
+    // --- PRODUCTS COLLECTION ---
+    match /products/{productId} {
+      allow get, list: if isSignedIn();
+
+      allow create: if isSignedIn() &&
+                       isValidId(productId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll(['nameNp', 'category', 'retailPrice', 'unit', 'stockQuantity', 'userId', 'createdAt']) &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       isValidProduct(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(productId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidProduct(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'nameNp', 'nameEn', 'category', 'retailPrice', 'wholesalePrice',
+                         'unit', 'stockQuantity', 'minStockThreshold', 'descriptionNp',
+                         'descriptionEn', 'sku', 'isOrganicCertified', 'updatedAt'
+                       ]);
+
+      allow delete: if isSignedIn() && isValidId(productId) && existing().userId == request.auth.uid;
+    }
+
+    // --- ORDERS COLLECTION ---
+    match /orders/{orderId} {
+      allow get: if isSignedIn() && isValidId(orderId) && existing().userId == request.auth.uid;
+
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+
+      allow create: if isSignedIn() &&
+                       isValidId(orderId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll(['userId', 'customerName', 'customerPhone', 'totalAmount', 'status', 'createdAt']) &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       isValidFarmOrder(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(orderId) &&
+                       existing().userId == request.auth.uid &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidFarmOrder(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'status', 'bankTransfer', 'notes', 'deliveryAddress', 'customerPhone', 'updatedAt'
+                       ]);
+
+      allow delete: if isSignedIn() && isValidId(orderId) && existing().userId == request.auth.uid;
+    }
+
+    // --- USER PROFILES COLLECTION ---
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+
+      allow create: if isOwner(userId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll(['userId', 'displayName', 'createdAt']) &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       isValidUserProfile(incoming());
+
+      allow update: if isOwner(userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'displayName', 'email', 'phone', 'role', 'updatedAt'
+                       ]);
+
+      allow delete: if isOwner(userId);
+    }
+
+    // --- EMPLOYEES COLLECTION ---
+    match /employees/{employeeId} {
+      allow get, list: if isSignedIn();
+
+      allow create: if isSignedIn() &&
+                       isValidId(employeeId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll(['name', 'role', 'userId', 'createdAt']) &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       isValidEmployee(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(employeeId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidEmployee(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'name', 'role', 'phone', 'dailyWage', 'monthlySalary', 'isActive', 'joinDate', 'updatedAt'
+                       ]);
+
+      allow delete: if isSignedIn() && isValidId(employeeId) && existing().userId == request.auth.uid;
+    }
+
+    // --- ATTENDANCE RECORDS COLLECTION ---
+    match /attendances/{attendanceId} {
+      allow get, list: if isSignedIn();
+
+      allow create: if isSignedIn() &&
+                       isValidId(attendanceId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll(['employeeId', 'employeeName', 'date', 'monthYear', 'status', 'userId', 'createdAt']) &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       isValidAttendance(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(attendanceId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidAttendance(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'status', 'checkInTime', 'checkOutTime', 'remarks', 'updatedAt'
+                       ]);
+
+      allow delete: if isSignedIn() && isValidId(attendanceId) && existing().userId == request.auth.uid;
+    }
+
+    // --- FINANCIAL TRANSACTIONS COLLECTION ---
+    match /transactions/{transactionId} {
+      allow get, list: if isSignedIn();
+
+      allow create: if isSignedIn() &&
+                       isValidId(transactionId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll(['type', 'category', 'amount', 'date', 'monthYear', 'userId', 'createdAt']) &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       isValidTransaction(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(transactionId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidTransaction(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'amount', 'category', 'type', 'date', 'monthYear', 'paymentMode', 'partyName', 'referenceNo', 'description', 'updatedAt'
+                       ]);
+
+      allow delete: if isSignedIn() && isValidId(transactionId) && existing().userId == request.auth.uid;
+    }
+
+    // --- BALANCE SHEET LEDGER COLLECTION ---
+    match /balance_sheet/{ledgerId} {
+      allow get, list: if isSignedIn();
+
+      allow create, update: if isSignedIn() &&
+                               isValidId(ledgerId) &&
+                               incoming().userId == request.auth.uid &&
+                               isValidBalanceSheet(incoming());
+
+      allow delete: if isSignedIn() && isValidId(ledgerId) && existing().userId == request.auth.uid;
+    }
+
+    // --- OFFICIAL DOCUMENTS & PERMITS COLLECTION ---
+    match /documents/{documentId} {
+      allow get, list: if isSignedIn();
+
+      allow create: if isSignedIn() &&
+                       isValidId(documentId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll(['titleNp', 'documentNumber', 'category', 'issuingAuthorityNp', 'issueDate', 'status', 'userId']) &&
+                       isValidOfficialDocument(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(documentId) &&
+                       incoming().userId == existing().userId &&
+                       isValidOfficialDocument(incoming());
+
+      allow delete: if isSignedIn() && isValidId(documentId) && existing().userId == request.auth.uid;
+    }
+  }
+}
